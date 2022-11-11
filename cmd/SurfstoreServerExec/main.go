@@ -25,11 +25,6 @@ var SERVICE_TYPES = map[string]bool{"meta": true, "block": true, "both": true}
 const EX_USAGE int = 64
 
 func main() {
-	logFile, err := os.OpenFile("/home/rorshach/Projects/courses/CSE124/proj4-Rorshachk/logs/server.log", os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		panic(err)
-	}
-	log.SetOutput(logFile)
 
 	// Custom flag Usage message
 	flag.Usage = func() {
@@ -47,6 +42,12 @@ func main() {
 	localOnly := flag.Bool("l", false, "Only listen on localhost")
 	debug := flag.Bool("d", false, "Output log statements")
 	flag.Parse()
+
+	logFile, err := os.OpenFile(fmt.Sprintf("/home/rorshach/Projects/courses/CSE124/proj4-Rorshachk/logs/%v.log", service), os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		panic(err)
+	}
+	log.SetOutput(logFile)
 
 	// Use tail arguments to hold BlockStore address
 	args := flag.Args()
