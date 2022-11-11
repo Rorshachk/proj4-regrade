@@ -15,7 +15,7 @@ type MetaStore struct {
 
 func (m *MetaStore) GetFileInfoMap(ctx context.Context, _ *emptypb.Empty) (*FileInfoMap, error) {
 	log.Println("Get File Info Map Called")
-	PrintMetaMap(m.FileMetaMap)
+	// PrintMetaMap(m.FileMetaMap)
 	return &FileInfoMap{FileInfoMap: m.FileMetaMap}, nil
 }
 

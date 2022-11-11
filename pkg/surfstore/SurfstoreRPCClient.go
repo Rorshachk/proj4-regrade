@@ -2,7 +2,6 @@ package surfstore
 
 import (
 	context "context"
-	"fmt"
 	"log"
 	"time"
 
@@ -56,7 +55,7 @@ func (surfClient *RPCClient) PutBlock(block *Block, blockStoreAddr string, succ 
 		conn.Close()
 		panic(err)
 	}
-	fmt.Printf("Success: %v\n", success.GetFlag())
+	log.Printf("Success: %v\n", success.GetFlag())
 	*succ = success.GetFlag()
 	return conn.Close()
 }

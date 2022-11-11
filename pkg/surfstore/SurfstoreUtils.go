@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -65,7 +66,7 @@ func ClientSync(client RPCClient) {
 		panic(err)
 	}
 
-	PrintMetaMap(remote_file_map)
+	// PrintMetaMap(remote_file_map)
 
 	// Get block store addr
 	var blockStoreAddr string
@@ -236,7 +237,7 @@ func UpdateFiles(client RPCClient, update_files []FileMetaData, blockStoreAddr s
 			if err != nil {
 				panic(err)
 			}
-			fmt.Printf("Writing block data: %v", string(blk.BlockData[:blk.BlockSize]))
+			log.Printf("Writing block data: %v", string(blk.BlockData[:blk.BlockSize]))
 			_, err := writer.Write(blk.BlockData[:blk.BlockSize])
 			if err != nil {
 				panic(err)
