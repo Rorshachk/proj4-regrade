@@ -1,13 +1,18 @@
 package main
 
 import (
+	"cse224/proj4/pkg/surfstore"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"os"
 	"strconv"
 	"strings"
+
+	"google.golang.org/grpc"
 )
 
 // Usage String
@@ -20,6 +25,12 @@ var SERVICE_TYPES = map[string]bool{"meta": true, "block": true, "both": true}
 const EX_USAGE int = 64
 
 func main() {
+	logFile, err := os.OpenFile("/home/rorshach/Projects/courses/CSE124/proj4-Rorshachk/logs/server.log", os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		panic(err)
+	}
+	log.SetOutput(logFile)
+
 	// Custom flag Usage message
 	flag.Usage = func() {
 		w := flag.CommandLine.Output()
@@ -62,10 +73,27 @@ func main() {
 		log.SetFlags(0)
 		log.SetOutput(ioutil.Discard)
 	}
+	log.Println("Hello world")
 
 	log.Fatal(startServer(addr, strings.ToLower(*service), blockStoreAddr))
 }
 
 func startServer(hostAddr string, serviceType string, blockStoreAddr string) error {
-	panic("todo")
+	listen, err := net.Listen("tcp", hostAddr)
+	grpc_server := grpc.NewServer()
+	if err != nil {
+		panic(err)
+	}
+	if serviceType == "block" {
+		surfstore.RegisterBlockStoreServer(grpc_server, surfstore.NewBlockStore())
+	} else if serviceType == "meta" {
+		surfstore.RegisterMetaStoreServer(grpc_server, surfstore.NewMetaStore(blockStoreAddr))
+	} else if serviceType == "both" {
+		surfstore.RegisterBlockStoreServer(grpc_server, surfstore.NewBlockStore())
+		surfstore.RegisterMetaStoreServer(grpc_server, surfstore.NewMetaStore(blockStoreAddr))
+	} else {
+		return errors.New("Unknown service type.")
+	}
+
+	return grpc_server.Serve(listen)
 }

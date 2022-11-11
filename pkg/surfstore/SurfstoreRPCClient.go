@@ -2,9 +2,12 @@ package surfstore
 
 import (
 	context "context"
+	"fmt"
+	"log"
 	"time"
 
 	grpc "google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type RPCClient struct {
@@ -25,6 +28,7 @@ func (surfClient *RPCClient) GetBlock(blockHash string, blockStoreAddr string, b
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	b, err := c.GetBlock(ctx, &BlockHash{Hash: blockHash})
+
 	if err != nil {
 		conn.Close()
 		return err
@@ -37,23 +41,93 @@ func (surfClient *RPCClient) GetBlock(blockHash string, blockStoreAddr string, b
 }
 
 func (surfClient *RPCClient) PutBlock(block *Block, blockStoreAddr string, succ *bool) error {
-	panic("todo")
+
+	log.Printf("Putting block, size %v, real len %v", block.BlockSize, len(block.BlockData))
+	conn, err := grpc.Dial(blockStoreAddr, grpc.WithInsecure())
+	if err != nil {
+		log.Fatal(err)
+	}
+	c := NewBlockStoreClient(conn)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	success, err := c.PutBlock(ctx, block)
+	if err != nil {
+		conn.Close()
+		panic(err)
+	}
+	fmt.Printf("Success: %v\n", success.GetFlag())
+	*succ = success.GetFlag()
+	return conn.Close()
 }
 
 func (surfClient *RPCClient) HasBlocks(blockHashesIn []string, blockStoreAddr string, blockHashesOut *[]string) error {
-	panic("todo")
+	conn, err := grpc.Dial(blockStoreAddr, grpc.WithInsecure())
+	if err != nil {
+		log.Fatal(err)
+	}
+	c := NewBlockStoreClient(conn)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	in_hashes := &BlockHashes{Hashes: blockHashesIn}
+	out_hashes, err := c.HasBlocks(ctx, in_hashes)
+	if err != nil {
+		return err
+	}
+	*blockHashesOut = out_hashes.Hashes
+	return nil
 }
 
 func (surfClient *RPCClient) GetFileInfoMap(serverFileInfoMap *map[string]*FileMetaData) error {
-	panic("todo")
+	conn, err := grpc.Dial(surfClient.MetaStoreAddr, grpc.WithInsecure())
+	if err != nil {
+		log.Fatal(err)
+	}
+	c := NewMetaStoreClient(conn)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	file_info_map, err := c.GetFileInfoMap(ctx, &emptypb.Empty{})
+	if err != nil {
+		return err
+	}
+	*serverFileInfoMap = file_info_map.FileInfoMap
+	return nil
 }
 
 func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersion *int32) error {
-	panic("todo")
+	conn, err := grpc.Dial(surfClient.MetaStoreAddr, grpc.WithInsecure())
+	if err != nil {
+		log.Fatal(err)
+	}
+	c := NewMetaStoreClient(conn)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	version, err := c.UpdateFile(ctx, fileMetaData)
+	if err != nil {
+		return err
+	}
+	*latestVersion = version.Version
+	return nil
 }
 
 func (surfClient *RPCClient) GetBlockStoreAddr(blockStoreAddr *string) error {
-	panic("todo")
+	conn, err := grpc.Dial(surfClient.MetaStoreAddr, grpc.WithInsecure())
+	if err != nil {
+		log.Fatal(err)
+	}
+	c := NewMetaStoreClient(conn)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	block_addr, err := c.GetBlockStoreAddr(ctx, &emptypb.Empty{})
+	if err != nil {
+		return err
+	}
+	*blockStoreAddr = block_addr.Addr
+	return nil
 }
 
 // This line guarantees all method for RPCClient are implemented

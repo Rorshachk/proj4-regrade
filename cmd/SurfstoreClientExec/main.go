@@ -67,6 +67,7 @@ func main() {
 		log.SetFlags(0)
 		log.SetOutput(ioutil.Discard)
 	}
+	log.Println("Hello world")
 
 	rpcClient := surfstore.NewSurfstoreRPCClient(hostPort, baseDir, blockSize)
 	surfstore.ClientSync(rpcClient)
