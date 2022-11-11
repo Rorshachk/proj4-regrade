@@ -11,16 +11,51 @@ type ConsistentHashRing struct {
 }
 
 func (c ConsistentHashRing) InsertServer(addr string) {
-	panic("to do")
+	c.ServerMap[c.Hash(addr)] = addr
 }
 
 func (c ConsistentHashRing) DeleteServer(addr string) {
-	panic("to do")
+	delete(c.ServerMap, addr)
 }
 
 func (c ConsistentHashRing) GetResponsibleServer(blockId string) string {
 	// Find the next largest key from ServerMap
-	panic("to do")
+	lowestkey := ""
+	lowestval := ""
+
+	retkey := ""
+	retval := ""
+
+	blockHash := c.Hash(blockId)
+
+	for k, v := range c.ServerMap {
+		if lowestkey == "" {
+			lowestkey = k
+			lowestval = v
+		} else {
+			if compareHexString(lowestkey, k) {
+				lowestkey = k
+				lowestval = v
+			}
+		}
+
+		if compareHexString(k, blockHash) {
+			if retkey == "" {
+				retkey = k
+				retval = v
+			} else {
+				if compareHexString(retkey, k) {
+					retkey = k
+					retval = v
+				}
+			}
+		}
+	}
+	if retval != "" {
+		return retval
+	} else {
+		return lowestval
+	}
 }
 
 func (c ConsistentHashRing) Hash(addr string) string {
@@ -30,10 +65,10 @@ func (c ConsistentHashRing) Hash(addr string) string {
 
 }
 
-func (c ConsistentHashRing) OutputMap(blockHashes []string) map[string]string {
+func (c ConsistentHashRing) OutputMap(blockHashes *[]string) map[string]string {
 	res := make(map[string]string)
-	for i := 0; i < len(blockHashes); i++ {
-		res["block"+strconv.Itoa(i)] = c.GetResponsibleServer(blockHashes[i])
+	for i := 0; i < len(*blockHashes); i++ {
+		res[((*blockHashes)[i])] = c.GetResponsibleServer((*blockHashes)[i])
 	}
 	return res
 }
@@ -52,4 +87,13 @@ func NewConsistentHashRing(numServers int, downServer []int) *ConsistentHashRing
 	}
 
 	return c
+}
+
+func compareHexString(hex1 string, hex2 string) bool {
+	for i := 0; i < len(hex1); i++ {
+		if hex1[i] != hex2[i] {
+			return hex1[i] > hex2[i]
+		}
+	}
+	return false
 }

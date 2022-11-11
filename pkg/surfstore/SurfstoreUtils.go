@@ -3,7 +3,6 @@ package surfstore
 import (
 	"bufio"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -25,7 +24,7 @@ func ClientSync(client RPCClient) {
 		if file.Name() == "index.txt" {
 			continue
 		}
-		hash_list := ComputeHashList(client.BaseDir, file.Name(), client.BlockSize)
+		hash_list := ComputeHashList(filepath.Join(client.BaseDir, file.Name()), client.BlockSize)
 		local_files[file.Name()] = hash_list
 	}
 
@@ -160,31 +159,6 @@ func ClientSync(client RPCClient) {
 	if err != nil {
 		panic(err)
 	}
-}
-
-func ComputeHashList(baseDir string, filename string, blockSize int) *[]string {
-	file, err := os.OpenFile(filepath.Join(baseDir, filename), os.O_RDONLY, 0644)
-	if err != nil {
-		panic(err)
-	}
-
-	reader := bufio.NewReader(file)
-	buf := make([]byte, blockSize)
-	var hash_list []string
-	for {
-		n, err := io.ReadFull(reader, buf)
-		if err == io.EOF || err == io.ErrUnexpectedEOF {
-			hash_list = append(hash_list, GetBlockHashString(buf[:n]))
-			break
-		} else if err == nil {
-			hash_list = append(hash_list, GetBlockHashString(buf))
-		} else {
-			fmt.Print(n)
-			panic(err)
-		}
-	}
-
-	return &hash_list
 }
 
 func UploadFileBlocks(client RPCClient, file *FileMetaData, blockStoreAddr string) error {

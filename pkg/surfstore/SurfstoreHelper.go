@@ -164,3 +164,28 @@ func PrintMetaMap(metaMap map[string]*FileMetaData) {
 	fmt.Println("---------END PRINT MAP--------")
 
 }
+
+func ComputeHashList(filepath string, blockSize int) *[]string {
+	file, err := os.OpenFile(filepath, os.O_RDONLY, 0644)
+	if err != nil {
+		panic(err)
+	}
+
+	reader := bufio.NewReader(file)
+	buf := make([]byte, blockSize)
+	var hash_list []string
+	for {
+		n, err := io.ReadFull(reader, buf)
+		if err == io.EOF || err == io.ErrUnexpectedEOF {
+			hash_list = append(hash_list, GetBlockHashString(buf[:n]))
+			break
+		} else if err == nil {
+			hash_list = append(hash_list, GetBlockHashString(buf))
+		} else {
+			fmt.Print(n)
+			panic(err)
+		}
+	}
+
+	return &hash_list
+}
