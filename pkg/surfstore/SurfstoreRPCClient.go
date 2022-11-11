@@ -88,6 +88,7 @@ func (surfClient *RPCClient) GetFileInfoMap(serverFileInfoMap *map[string]*FileM
 	defer cancel()
 
 	file_info_map, err := c.GetFileInfoMap(ctx, &emptypb.Empty{})
+	PrintMetaMap(file_info_map.FileInfoMap)
 	if err != nil {
 		return err
 	}
@@ -104,10 +105,12 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
+	log.Printf("Version before update: %v", fileMetaData.Version)
 	version, err := c.UpdateFile(ctx, fileMetaData)
 	if err != nil {
 		return err
 	}
+	log.Printf("Version after update: %v", fileMetaData.Version)
 	*latestVersion = version.Version
 	return nil
 }

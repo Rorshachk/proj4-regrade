@@ -36,24 +36,27 @@ func ClientSync(client RPCClient) {
 	}
 
 	// Check if there is any new added/changed/deleted file
-	// If filemeta.version = 0, then it is deleted
-	// If filemeta.version = 1, then it is newly added
 	// Otherwise, the filemeta.version will increment by 1
+	log.Println("Consulting local index file")
 	updated := make(map[string]*FileMetaData)
 	unchanged := make(map[string]*FileMetaData)
 	deleted_mark := []string{"deleted"}
 	for _, v := range local_metadata {
 		local_hashlist, ok := local_files[v.Filename]
 		if !ok {
-			updated[v.Filename] = &FileMetaData{Version: v.Version + 1, BlockHashList: deleted_mark}
+			log.Printf("File %v is deleted since last time", v.Filename)
+			updated[v.Filename] = &FileMetaData{Filename: v.Filename, Version: v.Version + 1, BlockHashList: deleted_mark}
 		} else if !reflect.DeepEqual(*local_hashlist, v.BlockHashList) {
+			log.Printf("File %v is changed since last time", v.Filename)
 			updated[v.Filename] = &FileMetaData{Filename: v.Filename, Version: v.Version + 1, BlockHashList: *local_hashlist}
 		} else {
+			log.Printf("File %v doesn't change since last time", v.Filename)
 			unchanged[v.Filename] = v
 		}
 	}
 	for k, v := range local_files {
 		if _, ok := local_metadata[k]; !ok {
+			log.Printf("File %v is added since last time", k)
 			updated[k] = &FileMetaData{Filename: k, Version: 1, BlockHashList: *v}
 		}
 	}
@@ -65,8 +68,6 @@ func ClientSync(client RPCClient) {
 	if err != nil {
 		panic(err)
 	}
-
-	// PrintMetaMap(remote_file_map)
 
 	// Get block store addr
 	var blockStoreAddr string
@@ -80,10 +81,11 @@ func ClientSync(client RPCClient) {
 	var willupdate_metadata []FileMetaData
 	for filename, metadata := range remote_file_map {
 		update_file, ok := updated[filename]
-		final_filemeta[filename] = metadata
+		use_local := false
 		if ok {
 			if update_file.Version == metadata.Version+1 {
 				// Upload all blocks
+				log.Printf("Changing remote file %v, uploading...", update_file.Filename)
 				err = UploadFileBlocks(client, update_file, blockStoreAddr)
 				if err != nil {
 					panic(err)
@@ -91,18 +93,23 @@ func ClientSync(client RPCClient) {
 
 				// try to update fileinto
 				var latestVersion int32
-				err = client.UpdateFile(metadata, &latestVersion)
+				err = client.UpdateFile(update_file, &latestVersion)
 				if err != nil {
 					panic(err)
 				}
 				if latestVersion == -1 {
+					log.Printf("Updating for %v is rejected, add to download list", update_file.Filename)
 					// Then it is rejected
 					// We add it to update list
 					willupdate_metadata = append(willupdate_metadata, FileMetaData{Filename: metadata.Filename,
 						Version:       metadata.Version,
 						BlockHashList: metadata.BlockHashList})
+				} else {
+					log.Printf("Successfully sync local changes to cloud")
+					use_local = true
 				}
 			} else {
+				log.Printf("Local file %v changed but stale, overwrite it", update_file.Filename)
 				willupdate_metadata = append(willupdate_metadata, FileMetaData{Filename: metadata.Filename,
 					Version:       metadata.Version,
 					BlockHashList: metadata.BlockHashList})
@@ -110,10 +117,18 @@ func ClientSync(client RPCClient) {
 		} else {
 			unchanged_file, ok := unchanged[filename]
 			if !ok || unchanged_file.Version < metadata.Version {
+				log.Printf("Remote file %v not found or stale, overwrite it", filename)
 				willupdate_metadata = append(willupdate_metadata, FileMetaData{Filename: metadata.Filename,
 					Version:       metadata.Version,
 					BlockHashList: metadata.BlockHashList})
+			} else {
+				log.Printf("Remote file %v is identical to local, use_local: %v", filename, use_local)
 			}
+		}
+		if !use_local {
+			final_filemeta[filename] = metadata
+		} else {
+			final_filemeta[filename] = update_file
 		}
 	}
 
@@ -121,6 +136,7 @@ func ClientSync(client RPCClient) {
 	for filename, metadata := range updated {
 		_, ok := remote_file_map[filename]
 		if !ok {
+			log.Printf("local file %v is newly created, uploading...", filename)
 			final_filemeta[filename] = metadata
 			err = UploadFileBlocks(client, metadata, blockStoreAddr)
 			if err != nil {
@@ -130,6 +146,7 @@ func ClientSync(client RPCClient) {
 			var latestVersion int32
 			err = client.UpdateFile(metadata, &latestVersion)
 			if latestVersion == -1 {
+				log.Printf("Updating remote index for file %v is rejected, overwrite it", filename)
 				willupdate_metadata = append(willupdate_metadata, FileMetaData{Filename: metadata.Filename,
 					Version:       metadata.Version,
 					BlockHashList: metadata.BlockHashList})
@@ -137,7 +154,7 @@ func ClientSync(client RPCClient) {
 		}
 	}
 
-	UpdateFiles(client, willupdate_metadata, blockStoreAddr)
+	UpdateLocalFiles(client, willupdate_metadata, blockStoreAddr)
 	// Write index back
 	err = WriteMetaFile(final_filemeta, client.BaseDir)
 	if err != nil {
@@ -216,15 +233,19 @@ func UploadFileBlocks(client RPCClient, file *FileMetaData, blockStoreAddr strin
 	return nil
 }
 
-func UpdateFiles(client RPCClient, update_files []FileMetaData, blockStoreAddr string) {
+func UpdateLocalFiles(client RPCClient, update_files []FileMetaData, blockStoreAddr string) {
+	log.Printf("Start updating all local files")
 	for i := 0; i < len(update_files); i++ {
-		if len(update_files[i].BlockHashList) == 1 && update_files[i].BlockHashList[i] == "deleted" {
-			_, err := os.Stat(update_files[i].Filename)
-			if err == nil {
-				_ = os.Remove(update_files[i].Filename)
-				continue
-			}
+		err := RemoveIfExist(filepath.Join(client.BaseDir, update_files[i].Filename))
+		if err != nil {
+			panic(err)
 		}
+
+		if len(update_files[i].BlockHashList) == 1 && update_files[i].BlockHashList[0] == "deleted" {
+			continue
+		}
+		// remove the file if exists
+
 		f, err := os.OpenFile(filepath.Join(client.BaseDir, update_files[i].Filename), os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			panic(err)

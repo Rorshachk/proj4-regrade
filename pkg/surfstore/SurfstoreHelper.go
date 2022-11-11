@@ -127,6 +127,23 @@ func WriteMetaFile(fileMetas map[string]*FileMetaData, baseDir string) error {
 	return nil
 }
 
+// Filesystem related
+func RemoveIfExist(filename string) error {
+	_, err := os.Stat(filename)
+	if err == nil {
+		_ = os.Remove(filename)
+	}
+	return nil
+}
+
+func CloneFileMetaMap(fileMatas map[string]*FileMetaData) map[string]*FileMetaData {
+	ret := make(map[string]*FileMetaData)
+	for k, v := range fileMatas {
+		ret[k] = &FileMetaData{Filename: v.Filename, Version: v.Version, BlockHashList: v.BlockHashList}
+	}
+	return ret
+}
+
 /*
 	Debugging Related
 */

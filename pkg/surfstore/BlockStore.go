@@ -17,7 +17,7 @@ func (bs *BlockStore) GetBlock(ctx context.Context, blockHash *BlockHash) (*Bloc
 	blk, ok := bs.BlockMap[blockHash.GetHash()]
 	if ok {
 		// log.Printf("Block found: %v", string(blk.BlockData[:blk.BlockSize]))
-		return blk, nil
+		return &Block{BlockSize: blk.BlockSize, BlockData: blk.BlockData}, nil
 	} else {
 		log.Println("Block not found")
 		return &Block{}, errors.New("Block not found")
