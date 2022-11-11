@@ -21,7 +21,7 @@ func (m *MetaStore) GetFileInfoMap(ctx context.Context, _ *emptypb.Empty) (*File
 	// 		log.Printf("Increment the file %v version to %v", m.FileMetaMap[k].Filename, m.FileMetaMap[k].Version)
 	// 	}
 	// }()
-	PrintMetaMap(m.FileMetaMap)
+	// PrintMetaMap(m.FileMetaMap)
 	return &FileInfoMap{FileInfoMap: CloneFileMetaMap(m.FileMetaMap)}, nil
 }
 

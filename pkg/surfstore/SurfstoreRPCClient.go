@@ -88,7 +88,7 @@ func (surfClient *RPCClient) GetFileInfoMap(serverFileInfoMap *map[string]*FileM
 	defer cancel()
 
 	file_info_map, err := c.GetFileInfoMap(ctx, &emptypb.Empty{})
-	PrintMetaMap(file_info_map.FileInfoMap)
+	// PrintMetaMap(file_info_map.FileInfoMap)
 	if err != nil {
 		return err
 	}
