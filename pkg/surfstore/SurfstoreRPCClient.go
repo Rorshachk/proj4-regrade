@@ -96,6 +96,16 @@ func (surfClient *RPCClient) GetFileInfoMap(serverFileInfoMap *map[string]*FileM
 	return nil
 }
 
+func (surfClient *RPCClient) GetUpdatedMetadata(filename string) (*FileMetaData, error) {
+	new_file_map := make(map[string]*FileMetaData)
+	err := surfClient.GetFileInfoMap(&new_file_map)
+	if err != nil {
+		return nil, err
+	} else {
+		return new_file_map[filename], nil
+	}
+}
+
 func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersion *int32) error {
 	conn, err := grpc.Dial(surfClient.MetaStoreAddr, grpc.WithInsecure())
 	if err != nil {
@@ -106,12 +116,17 @@ func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersio
 	defer cancel()
 
 	log.Printf("Version before update: %v", fileMetaData.Version)
+	before_update := fileMetaData.BlockHashList
 	version, err := c.UpdateFile(ctx, fileMetaData)
 	if err != nil {
 		return err
 	}
 	log.Printf("Version after update: %v", fileMetaData.Version)
 	*latestVersion = version.Version
+	if *latestVersion == -1 {
+		log.Printf("Hashlist before update: %v", before_update)
+		log.Printf("Hashlist after update: %v", fileMetaData.BlockHashList)
+	}
 	return nil
 }
 

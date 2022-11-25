@@ -3,3 +3,4 @@ dataB/
 logs/
 .ccls-cache/
 data*/
+*.log

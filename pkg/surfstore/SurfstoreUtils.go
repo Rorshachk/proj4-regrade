@@ -98,11 +98,16 @@ func ClientSync(client RPCClient) {
 				}
 				if latestVersion == -1 {
 					log.Printf("Updating for %v is rejected, add to download list", update_file.Filename)
+					update_file, err = client.GetUpdatedMetadata(filename)
+					if err != nil {
+						panic(err)
+					}
 					// Then it is rejected
 					// We add it to update list
 					willupdate_metadata = append(willupdate_metadata, FileMetaData{Filename: metadata.Filename,
-						Version:       metadata.Version,
-						BlockHashList: metadata.BlockHashList})
+						Version:       update_file.Version,
+						BlockHashList: update_file.BlockHashList})
+					use_local = true
 				} else {
 					log.Printf("Successfully sync local changes to cloud")
 					use_local = true
@@ -136,7 +141,6 @@ func ClientSync(client RPCClient) {
 		_, ok := remote_file_map[filename]
 		if !ok {
 			log.Printf("local file %v is newly created, uploading...", filename)
-			final_filemeta[filename] = metadata
 			err = UploadFileBlocks(client, metadata, blockStoreAddr)
 			if err != nil {
 				panic(err)
@@ -146,9 +150,16 @@ func ClientSync(client RPCClient) {
 			err = client.UpdateFile(metadata, &latestVersion)
 			if latestVersion == -1 {
 				log.Printf("Updating remote index for file %v is rejected, overwrite it", filename)
+				updated_file, err := client.GetUpdatedMetadata(filename)
+				if err != nil {
+					panic(err)
+				}
 				willupdate_metadata = append(willupdate_metadata, FileMetaData{Filename: metadata.Filename,
-					Version:       metadata.Version,
-					BlockHashList: metadata.BlockHashList})
+					Version:       updated_file.Version,
+					BlockHashList: updated_file.BlockHashList})
+				final_filemeta[filename] = updated_file
+			} else {
+				final_filemeta[filename] = metadata
 			}
 		}
 	}

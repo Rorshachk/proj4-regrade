@@ -3,6 +3,7 @@ package surfstore
 import (
 	context "context"
 	"log"
+	"sync"
 
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
@@ -11,9 +12,12 @@ type MetaStore struct {
 	FileMetaMap    map[string]*FileMetaData
 	BlockStoreAddr string
 	UnimplementedMetaStoreServer
+	rw_lock sync.RWMutex
 }
 
 func (m *MetaStore) GetFileInfoMap(ctx context.Context, _ *emptypb.Empty) (*FileInfoMap, error) {
+	m.rw_lock.RLock()
+	defer m.rw_lock.RUnlock()
 	log.Println("Get File Info Map Called")
 	// defer func() {
 	// 	for k := range m.FileMetaMap {
@@ -26,6 +30,8 @@ func (m *MetaStore) GetFileInfoMap(ctx context.Context, _ *emptypb.Empty) (*File
 }
 
 func (m *MetaStore) UpdateFile(ctx context.Context, fileMetaData *FileMetaData) (*Version, error) {
+	m.rw_lock.Lock()
+	defer m.rw_lock.Unlock()
 	log.Println("Update File called")
 	log.Printf("Updating file: %v", fileMetaData.Filename)
 	current_meta, ok := m.FileMetaMap[fileMetaData.Filename]

@@ -4,15 +4,19 @@ import (
 	context "context"
 	"errors"
 	"log"
+	"sync"
 )
 
 type BlockStore struct {
 	BlockMap map[string]*Block
 	UnimplementedBlockStoreServer
+	rw_lock sync.RWMutex
 }
 
 func (bs *BlockStore) GetBlock(ctx context.Context, blockHash *BlockHash) (*Block, error) {
 	// log.Printf("Get block called, block hash: %v", blockHash)
+	bs.rw_lock.RLock()
+	defer bs.rw_lock.RUnlock()
 	log.Printf("Get block %v", blockHash.GetHash())
 	blk, ok := bs.BlockMap[blockHash.GetHash()]
 	if ok {
@@ -25,6 +29,8 @@ func (bs *BlockStore) GetBlock(ctx context.Context, blockHash *BlockHash) (*Bloc
 }
 
 func (bs *BlockStore) PutBlock(ctx context.Context, block *Block) (*Success, error) {
+	bs.rw_lock.Lock()
+	defer bs.rw_lock.Unlock()
 	log.Printf("Put block called, block len: %v, hash: %v", block.BlockSize, GetBlockHashString(block.BlockData[:block.BlockSize]))
 	bs.BlockMap[GetBlockHashString(block.BlockData[:block.BlockSize])] = &Block{BlockData: block.BlockData, BlockSize: block.BlockSize}
 	return &Success{Flag: true}, nil
@@ -33,6 +39,8 @@ func (bs *BlockStore) PutBlock(ctx context.Context, block *Block) (*Success, err
 // Given a list of hashes “in”, returns a list containing the
 // subset of in that are stored in the key-value store
 func (bs *BlockStore) HasBlocks(ctx context.Context, blockHashesIn *BlockHashes) (*BlockHashes, error) {
+	bs.rw_lock.RLock()
+	defer bs.rw_lock.RUnlock()
 	log.Println("Has blocks called")
 	var blockHashesString []string
 	hashes := blockHashesIn.GetHashes()

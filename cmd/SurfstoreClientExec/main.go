@@ -66,6 +66,13 @@ func main() {
 	if !(*debug) {
 		log.SetFlags(0)
 		log.SetOutput(ioutil.Discard)
+	} else {
+		logFile, err := os.OpenFile(baseDir[:len(baseDir)-1]+".log",
+			os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+		if err != nil {
+			panic(err)
+		}
+		log.SetOutput(logFile)
 	}
 	log.Println("Hello world")
 
