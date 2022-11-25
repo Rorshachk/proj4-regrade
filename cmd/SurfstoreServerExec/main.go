@@ -43,12 +43,6 @@ func main() {
 	debug := flag.Bool("d", false, "Output log statements")
 	flag.Parse()
 
-	logFile, err := os.OpenFile(fmt.Sprintf("/home/rorshach/Projects/courses/CSE124/proj4-Rorshachk/logs/%v.log", service), os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		panic(err)
-	}
-	log.SetOutput(logFile)
-
 	// Use tail arguments to hold BlockStore address
 	args := flag.Args()
 	blockStoreAddr := ""
@@ -73,9 +67,14 @@ func main() {
 	if !(*debug) {
 		log.SetFlags(0)
 		log.SetOutput(ioutil.Discard)
+	} else {
+		logFile, err := os.OpenFile(fmt.Sprintf("/home/rorshach/Projects/courses/CSE124/proj4-Rorshachk/logs/%v.log", service), os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			panic(err)
+		}
+		log.SetOutput(logFile)
 	}
 	log.Println("Hello world")
-
 	log.Fatal(startServer(addr, strings.ToLower(*service), blockStoreAddr))
 }
 
