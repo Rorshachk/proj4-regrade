@@ -111,7 +111,7 @@ if __name__ == '__main__':
                     test_error("Update from {} doesn't in {}".format(k, local_file))
     
 
-    print("Start conflicting test")
+    print("Start conflicting test: concurrent conflicting update")
     conflicting_index = random.randint(0, 9)
     for i in range(0, 10):
         local_dir = "data{}/".format(i)
@@ -147,6 +147,35 @@ if __name__ == '__main__':
         if found == False:
             test_error("Cant find conflict line from file {}".format(conflict_file))
         conflict_file_handler.close()
+    
+    print("Starting conflict test: concurrent new file")
+    for i in range(0, 10):
+        local_dir = "data{}/".format(i)
+        conflict_file = local_dir + "conflict_file"
+        conflict_file_handler = open(conflict_file, "w+")
+        content = "Conflicting update from client {}\n".format(i)
+        conflict_file_handler.write(content)
+        conflict_file_handler.close()
+    
+    for i in range(0, 10):
+        local_dir = "data{}/".format(i)
+        sync_folder(local_dir=local_dir, wait=False)
+    
+    print("Waiting for all client finished sync")
+    time.sleep(5)
+
+    tmp_file = "data0/conflict_file"
+    if os.path.exists(tmp_file) == False:
+        test_error("File {} does not exist".format(tmp_file))
+    tmp_file_handler = open(tmp_file, "r")
+    unique_data = tmp_file_handler.read()
+    for i in range(1, 10):
+        tmp_file = "data{}/conflict_file".format(i)
+        if os.path.exists(tmp_file) == False:
+            test_error("File {} does not exist".format(tmp_file))
+        tmp_file_handler = open(tmp_file, "r")
+        if tmp_file_handler.read() != unique_data:
+            test_error("File {} is not consistent".format(tmp_file))
 
 
     print("Start deleting test")
