@@ -15,7 +15,7 @@ func (c ConsistentHashRing) InsertServer(addr string) {
 }
 
 func (c ConsistentHashRing) DeleteServer(addr string) {
-	delete(c.ServerMap, addr)
+	delete(c.ServerMap, c.Hash(addr))
 }
 
 func (c ConsistentHashRing) GetResponsibleServer(blockId string) string {
@@ -25,8 +25,6 @@ func (c ConsistentHashRing) GetResponsibleServer(blockId string) string {
 
 	retkey := ""
 	retval := ""
-
-	blockHash := c.Hash(blockId)
 
 	for k, v := range c.ServerMap {
 		if lowestkey == "" {
@@ -39,7 +37,10 @@ func (c ConsistentHashRing) GetResponsibleServer(blockId string) string {
 			}
 		}
 
-		if compareHexString(k, blockHash) {
+	}
+
+	for k, v := range c.ServerMap {
+		if compareHexString(k, blockId) {
 			if retkey == "" {
 				retkey = k
 				retval = v
@@ -79,11 +80,11 @@ func NewConsistentHashRing(numServers int, downServer []int) *ConsistentHashRing
 	}
 
 	for i := 0; i < numServers; i++ {
-		c.InsertServer("blockServer" + strconv.Itoa(i))
+		c.InsertServer("blockstore" + strconv.Itoa(i))
 	}
 
 	for i := 0; i < len(downServer); i++ {
-		c.DeleteServer("blockServer" + strconv.Itoa(downServer[i]))
+		c.DeleteServer("blockstore" + strconv.Itoa(downServer[i]))
 	}
 
 	return c

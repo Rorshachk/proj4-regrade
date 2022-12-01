@@ -177,7 +177,9 @@ func ComputeHashList(filepath string, blockSize int) *[]string {
 	for {
 		n, err := io.ReadFull(reader, buf)
 		if err == io.EOF || err == io.ErrUnexpectedEOF {
-			hash_list = append(hash_list, GetBlockHashString(buf[:n]))
+			if n != 0 {
+				hash_list = append(hash_list, GetBlockHashString(buf[:n]))
+			}
 			break
 		} else if err == nil {
 			hash_list = append(hash_list, GetBlockHashString(buf))

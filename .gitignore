@@ -4,3 +4,5 @@ logs/
 .ccls-cache/
 data*/
 *.log
+*.dat
+gensort

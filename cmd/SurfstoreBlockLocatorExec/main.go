@@ -70,10 +70,10 @@ func main() {
 	fst := true
 	for k, v := range ret {
 		if fst {
-			fmt.Printf("{%v, %v}", k, v)
+			fmt.Printf("{%v,%v}", k, v[10:])
 			fst = false
 		} else {
-			fmt.Printf(", {%v, %v}", k, v)
+			fmt.Printf(",{%v,%v}", k, v[10:])
 		}
 	}
 	fmt.Printf("}\n")
