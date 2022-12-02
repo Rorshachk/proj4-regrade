@@ -68,12 +68,12 @@ func main() {
 
 	fmt.Printf("{")
 	fst := true
-	for k, v := range ret {
+	for _, blockHash := range *blockHashes {
 		if fst {
-			fmt.Printf("{%v,%v}", k, v[10:])
+			fmt.Printf("{%v,%v}", blockHash, ret[blockHash][10:])
 			fst = false
 		} else {
-			fmt.Printf(",{%v,%v}", k, v[10:])
+			fmt.Printf(",{%v,%v}", blockHash, ret[blockHash][10:])
 		}
 	}
 	fmt.Printf("}\n")
