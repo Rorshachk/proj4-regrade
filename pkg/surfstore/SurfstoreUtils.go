@@ -39,7 +39,7 @@ func ClientSync(client RPCClient) {
 	log.Println("Consulting local index file")
 	updated := make(map[string]*FileMetaData)
 	unchanged := make(map[string]*FileMetaData)
-	deleted_mark := []string{"deleted"}
+	deleted_mark := []string{"0"}
 	for _, v := range local_metadata {
 		local_hashlist, ok := local_files[v.Filename]
 		if !ok {
@@ -175,7 +175,7 @@ func ClientSync(client RPCClient) {
 func UploadFileBlocks(client RPCClient, file *FileMetaData, blockStoreAddr string) error {
 	// skip if file is marked deleted
 	if len(file.BlockHashList) == 1 {
-		if file.BlockHashList[0] == "deleted" {
+		if file.BlockHashList[0] == "0" {
 			return nil
 		}
 	}
@@ -226,7 +226,7 @@ func UpdateLocalFiles(client RPCClient, update_files []FileMetaData, blockStoreA
 			panic(err)
 		}
 
-		if len(update_files[i].BlockHashList) == 1 && update_files[i].BlockHashList[0] == "deleted" {
+		if len(update_files[i].BlockHashList) == 1 && update_files[i].BlockHashList[0] == "0" {
 			continue
 		}
 		// remove the file if exists
